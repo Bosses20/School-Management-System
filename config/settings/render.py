@@ -17,13 +17,16 @@ env = environ.Env(
 )
 
 # Render deployment settings
-DEBUG = False
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 # Get SECRET_KEY from environment
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-render-deployment-key-change-in-production')
 
-# Render provides DATABASE_URL automatically when you connect a PostgreSQL database
-DATABASE_URL = os.environ.get('DATABASE_URL')
+# Django Admin URL
+DJANGO_ADMIN_URL = os.environ.get('DJANGO_ADMIN_URL', 'admin')
+
+# Render provides DATABASE_URL or Internal_Database_URL when you connect a PostgreSQL database
+DATABASE_URL = os.environ.get('DATABASE_URL') or os.environ.get('Internal_Database_URL')
 if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.parse(DATABASE_URL)
@@ -137,13 +140,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Allow Render hosts
-ALLOWED_HOSTS = ['*']  # Render will handle the domain
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.onrender.com',
-]
+# Allow Render hosts - parse from environment variable
+allowed_hosts_str = os.environ.get('ALLOWED_HOSTS', '*')
+if allowed_hosts_str == '*':
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',')]
 
-# Cache - use database cache instead of Redis
+# CSRF Trusted Origins - parse from environment variable
+csrf_origins_str = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://*.onrender.com')
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins_str.split(',')]
+
+# Cache - use database cache instead of Redis for basic deployment
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
@@ -194,11 +202,11 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 MEDIA_ROOT = str(BASE_DIR / 'media')
 MEDIA_URL = '/media/'
 
-# Email settings - use console backend for now
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = os.environ.get('EMAIL_PORT', 587)
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
@@ -290,14 +298,63 @@ TINYMCE_DEFAULT_CONFIG = {
     "removeformat | help",
 }
 
-# Feature flags - disable for basic deployment
-USE_PAYMENT_OPTIONS = False
-USE_STRIPE = False
-USE_SENTRY = False
-USE_MAILCHIMP = False
+# Feature flags
+USE_PAYMENT_OPTIONS = os.environ.get('USE_PAYMENT_OPTIONS', 'False').lower() == 'true'
+USE_STRIPE = os.environ.get('USE_STRIPE', 'False').lower() == 'true'
+USE_SENTRY = os.environ.get('USE_SENTRY', 'False').lower() == 'true'
+USE_MAILCHIMP = os.environ.get('USE_MAILCHIMP', 'False').lower() == 'true'
+
+# Payment gateway settings (only if enabled)
+if USE_PAYMENT_OPTIONS:
+    BRAINTREE_MERCHANT_ID = os.environ.get('BRAINTREE_MERCHANT_ID', '')
+    BRAINTREE_PUBLIC_KEY = os.environ.get('BRAINTREE_PUBLIC_KEY', '')
+    BRAINTREE_PRIVATE_KEY = os.environ.get('BRAINTREE_PRIVATE_KEY', '')
+    STORE_ID = os.environ.get('STORE_ID', '')
+    STORE_PASS = os.environ.get('STORE_PASS', '')
+    SSL_ISSANDBOX = os.environ.get('SSL_ISSANDBOX', 'True').lower() == 'true'
+
+if USE_STRIPE:
+    STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
+    STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+
+# Celery settings (optional)
+if os.environ.get('CELERY_BROKER_URL'):
+    CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL')
+    CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND')
+    CELERY_ACCEPT_CONTENT = ['application/json']
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_TIMEZONE = TIME_ZONE
+
+# Sentry settings (only if enabled)
+if USE_SENTRY:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    
+    sentry_sdk.init(
+        dsn=os.environ.get('SENTRY_DSN', ''),
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=1.0,
+        send_default_pii=True,
+        debug=DEBUG
+    )
+
+# Mailchimp settings (only if enabled)
+if USE_MAILCHIMP:
+    MAILCHIMP_API_KEY = os.environ.get('MAILCHIMP_API_KEY', '')
+    MAILCHIMP_DATA_CENTER = os.environ.get('MAILCHIMP_DATA_CENTER', '')
+    MAILCHIMP_LIST_ID = os.environ.get('MAILCHIMP_LIST_ID', '')
 
 # Demo environment settings
 IS_DEMO_ENV = os.environ.get('IS_DEMO_ENV', 'False').lower() == 'true'
 DEMO_SUPERUSER_USERNAME = os.environ.get('DEMO_SUPERUSER_USERNAME', 'admin')
 DEMO_SUPERUSER_EMAIL = os.environ.get('DEMO_SUPERUSER_EMAIL', 'admin@example.com')
 DEMO_SUPERUSER_PASSWORD = os.environ.get('DEMO_SUPERUSER_PASSWORD', 'admin123')
+
+# Internal IPs for debugging (if needed)
+internal_ips_str = os.environ.get('INTERNAL_IPS', '')
+if internal_ips_str:
+    INTERNAL_IPS = [ip.strip() for ip in internal_ips_str.split(',')]
+
+# Prometheus settings
+PROMETHEUS_EXPORT_MIGRATIONS = os.environ.get('PROMETHEUS_EXPORT_MIGRATIONS', 'True').lower() == 'true'
