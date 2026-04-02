@@ -25,6 +25,16 @@ services:
         value: False
       - key: TIME_ZONE
         value: UTC
+      - key: IS_DEMO_ENV
+        value: True
+      - key: DEMO_SUPERUSER_USERNAME
+        value: admin
+      - key: DEMO_SUPERUSER_EMAIL
+        value: admin@example.com
+      - key: DEMO_SUPERUSER_PASSWORD
+        value: admin123
+    databases:
+      - name: school-management-db
 
 databases:
   - name: school-management-db
