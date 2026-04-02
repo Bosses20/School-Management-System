@@ -2,7 +2,7 @@ services:
   - type: web
     name: school-management-system
     env: python
-    buildCommand: "pip install -r requirements-production.txt && python manage.py collectstatic --noinput --settings=config.settings.render"
+    buildCommand: "pip install -r requirements-minimal.txt && python manage.py collectstatic --noinput --settings=config.settings.render"
     startCommand: "python manage.py migrate --noinput --settings=config.settings.render && python create_superuser.py && gunicorn config.wsgi --bind 0.0.0.0:$PORT"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
