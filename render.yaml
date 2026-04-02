@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: school-management-system
+    env: python
+    buildCommand: "pip install -r requirements-production.txt && python manage.py collectstatic --noinput --settings=config.settings.render"
+    startCommand: "python manage.py migrate --noinput --settings=config.settings.render && python create_superuser.py && gunicorn config.wsgi --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.render
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DEBUG
+        value: False
+      - key: USE_PAYMENT_OPTIONS
+        value: False
+      - key: USE_STRIPE
+        value: False
+      - key: USE_SENTRY
+        value: False
+      - key: USE_MAILCHIMP
+        value: False
+      - key: TIME_ZONE
+        value: UTC
+
+databases:
+  - name: school-management-db
+    databaseName: school_management
+    user: school_user
