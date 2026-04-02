@@ -2,15 +2,19 @@ services:
   - type: web
     name: school-management-system
     env: python
-    buildCommand: "pip install -r requirements-minimal.txt && python manage.py collectstatic --noinput --settings=config.settings.render"
+    region: oregon
+    plan: free
+    buildCommand: "pip install --upgrade pip && pip install -r requirements-ultra-minimal.txt && python manage.py collectstatic --noinput --settings=config.settings.render"
     startCommand: "python manage.py migrate --noinput --settings=config.settings.render && python create_superuser.py && gunicorn config.wsgi --bind 0.0.0.0:$PORT"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.render
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.9
       - key: DEBUG
         value: False
+      - key: SECRET_KEY
+        generateValue: true
       - key: USE_PAYMENT_OPTIONS
         value: False
       - key: USE_STRIPE
