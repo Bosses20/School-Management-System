@@ -1,1 +1,2 @@
-web: gunicorn config.wsgi --log-file -
+web: python manage.py migrate --noinput --settings=config.settings.railway && python manage.py collectstatic --noinput --settings=config.settings.railway && python create_superuser.py && gunicorn config.wsgi --log-file -
+release: echo "Deployment complete"

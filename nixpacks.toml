@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ['python311', 'postgresql']
+
+[phases.install]
+cmds = ['pip install -r requirements-production.txt']
+
+[phases.build]
+cmds = ['python manage.py collectstatic --noinput --settings=config.settings.railway']
+
+[start]
+cmd = 'gunicorn config.wsgi --bind 0.0.0.0:$PORT'
+
+[variables]
+DJANGO_SETTINGS_MODULE = 'config.settings.railway'
